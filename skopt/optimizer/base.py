@@ -269,8 +269,8 @@ def base_minimize(func, dimensions, base_estimator,
     callbacks = check_callback(callback)
     if verbose:
         callbacks.append(VerboseCallback(
-            n_init=len(x0) if not y0 else 0,
-            n_random=n_initial_points,
+            n_init=1 if x0 else 0,
+            n_random=n_initial_points-len(x0),
             n_total=n_calls))
 
     # Record provided points
