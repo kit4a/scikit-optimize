@@ -229,6 +229,151 @@ def plot_gaussian_process_2D(res, **kwargs):
 
     return ax
 
+def set_idx_val(x, idx, val):
+    x_ = x.copy()
+    x_[idx] = val
+    return x_
+
+def equal_except_on_idxs(x1, x2, lidx):
+    if len(x1) != len(x2):
+        return False
+    for i in range(len(x1)):
+        if i not in lidx:
+            if x1[i] != x2[i]:
+                return False
+    return True
+
+
+def plot_gaussian_process_nD(res, dim1, dim2, default_x, **kwargs):
+    """Plots the optimization results and the gaussian process
+    for n-D objective functions (n > 2) as heatmaps.
+
+    Parameters
+    ----------
+    res :  `OptimizeResult`
+        The result for which to plot the gaussian process.
+
+    dim1 : Index of the dimension to consider as abscissa in the heatmaps.
+
+    dim2 : Index of the dimension to consider as ordinates in the heatmaps.
+
+    default_x : Default x that gives the values of unselected dimensions (gives the
+                hyperplanes to represent)
+
+    ax : `Axes`, optional
+        The matplotlib axes on which to draw the plot, or `None` to create
+        a new one.
+
+    n_calls : int, default: -1
+        Can be used to evaluate the model at call `n_calls`.
+
+    n_points : int, default: 1000
+        Number of data points used to create the plots
+
+    show_acq_func : boolean, default: False
+        When True, the acquisition function is plotted
+
+    show_next_point : boolean, default: False
+        When True, the next evaluated point is plotted
+
+    show_observations : boolean, default: True
+        When True, observations are plotted as dots.
+
+    show_mu : boolean, default: True
+        When True, the predicted model is shown.
+
+    show_std: boolean, default: False
+        When True, the predicted model std is shown
+
+    Returns
+    -------
+    ax : `Axes`
+        The matplotlib axes.
+    """
+    ax = kwargs.get("ax", None)
+    n_calls = kwargs.get("n_calls", -1)
+    show_acq_func = kwargs.get("show_acq_func", False)
+    show_next_point = kwargs.get("show_next_point", False)
+    show_observations = kwargs.get("show_observations", True)
+    show_mu = kwargs.get("show_mu", True)
+    show_std = kwargs.get("show_std", False)
+    n_points = kwargs.get("n_points", 1000)
+
+    if ax is None:
+        ax = plt.gca()
+    n_dims = res.space.n_dims
+    assert n_dims >= 2, "Space dimension must be at least 2"
+    dimension_x = res.space.dimensions[dim1]
+    dimension_y = res.space.dimensions[dim2]
+    x, x_model = _evenly_sample(dimension_x, n_points)
+    y, y_model = _evenly_sample(dimension_y, n_points)
+    x_plot, y_plot = np.meshgrid(x, y)
+    X = np.array([np.array(set_idx_val(set_idx_val(default_x, dim1, xe), dim2, ye)).reshape(1,-1) for ye in y for xe in x]).reshape(-1, n_dims)
+    X_model = np.array([np.array(set_idx_val(set_idx_val(default_x, dim1, xe), dim2, ye)).reshape(1,-1) for ye in y_model for xe in x_model]).reshape(-1, n_dims)
+    if res.specs is not None and "args" in res.specs:
+        n_random = res.specs["args"].get('n_random_starts', None)
+        acq_func = res.specs["args"].get("acq_func", "EI")
+        acq_func_kwargs = res.specs["args"].get("acq_func_kwargs", {})
+
+    if acq_func_kwargs is None:
+        acq_func_kwargs = {}
+    if acq_func is None or acq_func == "gp_hedge":
+        acq_func = "EI"
+    if n_random is None:
+        n_random = len(res.x_iters) - len(res.models)
+
+    if n_calls < 0:
+        model = res.models[-1]
+        curr_X_iters = res.x_iters
+        curr_x_iters = np.array([e[dim1] for e in curr_X_iters if equal_except_on_idxs(e, default_x, [dim1, dim2])])
+        curr_y_iters = np.array([e[dim2] for e in curr_X_iters if equal_except_on_idxs(e, default_x, [dim1, dim2])])
+        curr_func_vals = res.func_vals
+    else:
+        model = res.models[n_calls]
+        curr_X_iters = res.x_iters[:n_random + n_calls + 1]
+        curr_x_iters = np.array([e[dim1] for e in curr_X_iters if equal_except_on_idxs(e, default_x, [dim1, dim2])])
+        curr_y_iters = np.array([e[dim2] for e in curr_X_iters if equal_except_on_idxs(e, default_x, [dim1, dim2])])
+        curr_func_vals = res.func_vals[:n_random + n_calls + 1]
+
+    # Plot GP(x) mean
+    if show_mu:
+        z_pred = model.predict(X_model)
+        z_plot = z_pred.reshape(x_plot.shape)
+        c = ax.pcolormesh(x_plot, y_plot, z_plot, cmap=cm.viridis)
+        cbar = plt.colorbar(c, ax=ax)
+        #cbar.ax.set_ylabel(r"$\mu_{GP}(x)$")
+
+    # Plot GP(x) std
+    if show_std:
+        z_pred, std = model.predict(X_model, return_std=True)
+        std_plot = std.reshape(x_plot.shape)
+        c = ax.pcolormesh(x_plot, y_plot, std_plot, cmap=cm.viridis)
+        cbar = plt.colorbar(c, ax=ax)
+        #cbar.ax.set_ylabel(r"$\sigma_{GP}(x)$")
+
+    # Plot sampled points
+    if show_observations:
+        ax.plot(curr_x_iters, curr_y_iters,
+                "r.", markersize=8, label="Observations")
+
+    # Plot acq func
+    if show_acq_func:
+        acq = _gaussian_acquisition(X_model, model,
+                                    y_opt=np.min(curr_func_vals),
+                                    acq_func=acq_func,
+                                    acq_func_kwargs=acq_func_kwargs)
+        acq_plot = acq.reshape(x_plot.shape)
+        next_X = X[np.argmin(acq)]
+        c = ax.pcolormesh(x_plot, y_plot, -acq_plot, cmap=cm.viridis)
+        cbar = plt.colorbar(c, ax=ax)
+
+        if show_next_point and next_X is not None:
+            ax.plot(next_X[dim1], next_X[dim2], marker="o", markeredgecolor="red",
+                       markerfacecolor="None", markersize=12, markeredgewidth=3,
+                       label="Next query point")
+
+    return ax
+
 
 def plot_gaussian_process_3Dsurface(res, **kwargs):
     """Plots the gaussian process mean value 
