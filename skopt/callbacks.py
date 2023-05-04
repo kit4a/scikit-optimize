@@ -14,6 +14,8 @@ from time import time
 
 import numpy as np
 
+import tracemalloc
+
 from skopt.utils import dump
 
 def check_callback(callback):
@@ -34,6 +36,33 @@ def check_callback(callback):
     else:
         return []
 
+class MemoryLeakMonitorCallback(object):
+    """
+    Callback to monitor the memory usage of objects.
+
+    Parameters
+    ----------
+    freq : int, frequency at which monitoring should be done
+
+    n_top : int, number of files for which we print the memory allocation
+
+    Attributes
+    ----------
+
+
+    """
+
+    def __init__(self, freq=5, n_top=10):
+        self.freq = freq
+        self.n_top = n_top
+
+    def __call__(self, res):
+        if len(res.x_iters) == 0 or len(res.x_iters) % self.freq == 0:
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics('lineno')
+            print(f'--MEMORY ALLOC MONITORING--')
+            for stat in top_stats[:self.n_top]:
+                print(stat)
 
 class VerboseCallback(object):
     """

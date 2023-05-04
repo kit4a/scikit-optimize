@@ -14,7 +14,7 @@ except ImportError:
 import numpy as np
 
 from ..callbacks import check_callback
-from ..callbacks import VerboseCallback
+from ..callbacks import VerboseCallback, MemoryLeakMonitorCallback
 from .optimizer import Optimizer
 from ..utils import eval_callbacks
 
@@ -26,7 +26,8 @@ def base_minimize(func, dimensions, base_estimator,
                   acq_func="EI", acq_optimizer="lbfgs",
                   x0=None, y0=None, random_state=None, verbose=False,
                   callback=None, n_points=10000, n_restarts_optimizer=5,
-                  xi=0.01, kappa=1.96, n_jobs=1, model_queue_size=None):
+                  xi=0.01, kappa=1.96, n_jobs=1, model_queue_size=None,
+                  monitor_mem=False):
     """Base optimizer class
 
     Parameters
@@ -34,7 +35,7 @@ def base_minimize(func, dimensions, base_estimator,
     func : callable
         Function to minimize. Should take a single list of parameters
         and return the objective value.
-    
+
         If you have a search-space where all dimensions have names,
         then you can use :func:`skopt.utils.use_named_args` as a decorator
         on your objective function, in order to call it directly
@@ -187,6 +188,10 @@ def base_minimize(func, dimensions, base_estimator,
         Keeps list of models only as long as the argument given. In the
         case of None, the list has no capped length.
 
+    monitor_mem : bool, default: False
+        Specifies if memory allocation should be monitored during the optimization
+        procedure.
+
     Returns
     -------
     res : `OptimizeResult`, scipy object
@@ -272,6 +277,8 @@ def base_minimize(func, dimensions, base_estimator,
             n_init=1 if x0 else 0,
             n_random=n_initial_points-len(x0),
             n_total=n_calls))
+    if monitor_mem:
+        callbacks.append(MemoryLeakMonitorCallback())
 
     # Record provided points
 
