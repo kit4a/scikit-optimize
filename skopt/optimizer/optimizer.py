@@ -428,6 +428,7 @@ class Optimizer(object):
         to determine the next point.
         """
         if self._n_initial_points > 0 or self.base_estimator_ is None:
+            print(f'Eval at random point')
             # this will not make a copy of `self.rng` and hence keep advancing
             # our random state.
             if self._initial_samples is None:
@@ -441,7 +442,7 @@ class Optimizer(object):
             if not self.models:
                 raise RuntimeError("Random evaluations exhausted and no "
                                    "model has been fit.")
-
+            print(f'Eval at chosen point')
             next_x = self._next_x
             min_delta_x = min([self.space.distance(next_x, xi)
                                for xi in self.Xi])
