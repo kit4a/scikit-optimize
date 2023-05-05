@@ -55,6 +55,7 @@ class MemoryLeakMonitorCallback(object):
     def __init__(self, freq=5, n_top=10):
         self.freq = freq
         self.n_top = n_top
+        tracemalloc.start()
 
     def __call__(self, res):
         if len(res.x_iters) == 0 or len(res.x_iters) % self.freq == 0:
