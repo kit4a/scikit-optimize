@@ -309,7 +309,12 @@ def plot_gaussian_process_nD(res, dim1, dim2, default_x, **kwargs):
     y, y_model = _evenly_sample(dimension_y, n_points)
     x_plot, y_plot = np.meshgrid(x, y)
     X = np.array([np.array(set_idx_val(set_idx_val(default_x, dim1, xe), dim2, ye)).reshape(1,-1) for ye in y for xe in x]).reshape(-1, n_dims)
-    X_model = np.array([np.array(set_idx_val(set_idx_val(default_x, dim1, xe), dim2, ye)).reshape(1,-1) for ye in y_model for xe in x_model]).reshape(-1, n_dims)
+    default_x_model = default_x.copy()
+    for i in range(len(default_x)):
+        if i != dim1 and i != dim2:
+            dimension = res.space.dimensions[i]
+            default_x_model = set_idx_val(default_x_model, i, dimension.transform(default_x_model[i]))
+    X_model = np.array([np.array(set_idx_val(set_idx_val(default_x_model, dim1, xe), dim2, ye)).reshape(1,-1) for ye in y_model for xe in x_model]).reshape(-1, n_dims)
     if res.specs is not None and "args" in res.specs:
         n_random = res.specs["args"].get('n_random_starts', None)
         acq_func = res.specs["args"].get("acq_func", "EI")
