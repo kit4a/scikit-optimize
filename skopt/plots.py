@@ -140,6 +140,15 @@ def plot_gaussian_process_2D(res, **kwargs):
     show_std: boolean, default: False
         When True, the predicted model std is shown
 
+    cmap: pyplot color map, default: cm.viridis
+        Specifies the colormap to use
+
+    contour: boolean, default: False
+        When True, a contour plot is made, not a heatmap
+
+    levels: int, default: 20
+        Specifies the number of levels to plot, applied only if contour is True
+
     Returns
     -------
     ax : `Axes`
@@ -153,6 +162,10 @@ def plot_gaussian_process_2D(res, **kwargs):
     show_mu = kwargs.get("show_mu", True)
     show_std = kwargs.get("show_std", False)
     n_points = kwargs.get("n_points", 1000)
+    cmap = kwargs.get("cmap", cm.viridis)
+    contour = kwargs.get("contour", False)
+    levels = kwargs.get("levels", 20)
+
 
     if ax is None:
         ax = plt.gca()
@@ -194,7 +207,11 @@ def plot_gaussian_process_2D(res, **kwargs):
     if show_mu:
         z_pred = model.predict(X_model)
         z_plot = z_pred.reshape(x_plot.shape)
-        c = ax.pcolormesh(x_plot, y_plot, z_plot, cmap=cm.viridis)
+        if contour:
+            levels = np.linspace(z_plot.min(), z_plot.max(), levels)
+            c = ax.contourf(x_plot, y_plot, z_plot, levels=levels, cmap=cmap)
+        else:
+            c = ax.pcolormesh(x_plot, y_plot, z_plot, cmap=cmap)
         cbar = plt.colorbar(c, ax=ax)
         #cbar.ax.set_ylabel(r"$\mu_{GP}(x)$")
 
@@ -202,7 +219,11 @@ def plot_gaussian_process_2D(res, **kwargs):
     if show_std:
         z_pred, std = model.predict(X_model, return_std=True)
         std_plot = std.reshape(x_plot.shape)
-        c = ax.pcolormesh(x_plot, y_plot, std_plot, cmap=cm.viridis)
+        if contour:
+            levels = np.linspace(std_plot.min(), std_plot.max(), levels)
+            c = ax.contourf(x_plot, y_plot, std_plot, levels=levels, cmap=cmap)
+        else:
+            c = ax.pcolormesh(x_plot, y_plot, std_plot, cmap=cmap)
         cbar = plt.colorbar(c, ax=ax)
         #cbar.ax.set_ylabel(r"$\sigma_{GP}(x)$")
 
@@ -219,7 +240,7 @@ def plot_gaussian_process_2D(res, **kwargs):
                                     acq_func_kwargs=acq_func_kwargs)
         acq_plot = acq.reshape(x_plot.shape)
         next_X = X[np.argmin(acq)]
-        c = ax.pcolormesh(x_plot, y_plot, -acq_plot, cmap=cm.viridis)
+        c = ax.pcolormesh(x_plot, y_plot, -acq_plot, cmap=cmap)
         cbar = plt.colorbar(c, ax=ax)
 
         if show_next_point and next_X is not None:
@@ -285,6 +306,15 @@ def plot_gaussian_process_nD(res, dim1, dim2, default_x, **kwargs):
     show_std: boolean, default: False
         When True, the predicted model std is shown
 
+    cmap: pyplot color map, default: cm.viridis
+        Specifies the colormap to use
+
+    contour: boolean, default: False
+        When True, a contour plot is made, not a heatmap
+
+    levels: int, default: 20
+        Specifies the number of levels to plot, applied only if contour is True
+
     Returns
     -------
     ax : `Axes`
@@ -298,6 +328,9 @@ def plot_gaussian_process_nD(res, dim1, dim2, default_x, **kwargs):
     show_mu = kwargs.get("show_mu", True)
     show_std = kwargs.get("show_std", False)
     n_points = kwargs.get("n_points", 1000)
+    cmap = kwargs.get("cmap", cm.viridis)
+    contour = kwargs.get("contour", False)
+    levels = kwargs.get("levels", 20)
 
     if ax is None:
         ax = plt.gca()
@@ -344,7 +377,11 @@ def plot_gaussian_process_nD(res, dim1, dim2, default_x, **kwargs):
     if show_mu:
         z_pred = model.predict(X_model)
         z_plot = z_pred.reshape(x_plot.shape)
-        c = ax.pcolormesh(x_plot, y_plot, z_plot, cmap=cm.viridis)
+        if contour:
+            levels = np.linspace(z_plot.min(), z_plot.max(), levels)
+            c = ax.contourf(x_plot, y_plot, z_plot, levels=levels, cmap=cmap)
+        else:
+            c = ax.pcolormesh(x_plot, y_plot, z_plot, cmap=cmap)
         cbar = plt.colorbar(c, ax=ax)
         #cbar.ax.set_ylabel(r"$\mu_{GP}(x)$")
 
@@ -352,7 +389,11 @@ def plot_gaussian_process_nD(res, dim1, dim2, default_x, **kwargs):
     if show_std:
         z_pred, std = model.predict(X_model, return_std=True)
         std_plot = std.reshape(x_plot.shape)
-        c = ax.pcolormesh(x_plot, y_plot, std_plot, cmap=cm.viridis)
+        if contour:
+            levels = np.linspace(std_plot.min(), std_plot.max(), levels)
+            c = ax.contourf(x_plot, y_plot, std_plot, levels=levels, cmap=cmap)
+        else:
+            c = ax.pcolormesh(x_plot, y_plot, std_plot, cmap=cmap)
         cbar = plt.colorbar(c, ax=ax)
         #cbar.ax.set_ylabel(r"$\sigma_{GP}(x)$")
 
@@ -369,7 +410,7 @@ def plot_gaussian_process_nD(res, dim1, dim2, default_x, **kwargs):
                                     acq_func_kwargs=acq_func_kwargs)
         acq_plot = acq.reshape(x_plot.shape)
         next_X = X[np.argmin(acq)]
-        c = ax.pcolormesh(x_plot, y_plot, -acq_plot, cmap=cm.viridis)
+        c = ax.pcolormesh(x_plot, y_plot, -acq_plot, cmap=cmap)
         cbar = plt.colorbar(c, ax=ax)
 
         if show_next_point and next_X is not None:
@@ -381,7 +422,7 @@ def plot_gaussian_process_nD(res, dim1, dim2, default_x, **kwargs):
 
 
 def plot_gaussian_process_3Dsurface(res, **kwargs):
-    """Plots the gaussian process mean value 
+    """Plots the gaussian process mean value
     for 2-D objective functions as a 3D surface.
 
     Parameters
